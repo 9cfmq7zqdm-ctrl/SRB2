@@ -1,0 +1,37 @@
+name: Build Unsigned iOS IPA
+on: [workflow_dispatch]
+
+jobs:
+  build:
+    runs-runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          brew install cmake sdl2 sdl2_mixer libpng
+
+      - name: Configure CMake for iOS
+        run: |
+          mkdir build && cd build
+          cmake .. -DCMAKE_SYSTEM_NAME=iOS \
+                   -DSRB2_CONFIG_USE_SDL2=ON \
+                   -DENABLE_SIGNING=OFF
+
+      - name: Compile and Build Archive
+        run: |
+          cd build
+          xcodebuild -configuration Release -sdk iphoneos CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+
+      - name: Package into IPA Container
+        run: |
+          mkdir -p Payload
+          cp -r build/Release-iphoneos/srb2.app Payload/
+          zip -r srb2_unsigned.ipa Payload
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SRB2-iOS-Unsigned
+          path: srb2_unsigned.ipa
